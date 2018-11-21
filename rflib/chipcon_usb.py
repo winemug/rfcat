@@ -458,18 +458,18 @@ class USBDongle:
                                             if self._debug>1:  print >>sys.stderr,(" - DEBUG..requeuing %s"%repr(requeuebuf))
                                             q.insert(0,requeuebuf)
                                         print >>sys.stderr,("DEBUG: (%.3f) %s" % (timestamp, repr(printbuf)))
-                            elif (cmd == DEBUG_CMD_HEX):
+                            elif (cmd == DEBUG_CMD_HEX and self._debug):
                                 #print >>sys.stderr, repr(buf)
                                 print >>sys.stderr, "DEBUG: (%.3f) 0x%x %d"%(timestamp, struct.unpack("B", buf[4:5])[0], struct.unpack("B", buf[4:5])[0])
-                            elif (cmd == DEBUG_CMD_HEX16):
+                            elif (cmd == DEBUG_CMD_HEX16 and self._debug):
                                 #print >>sys.stderr, repr(buf)
                                 print >>sys.stderr, "DEBUG: (%.3f) 0x%x %d"%(timestamp, struct.unpack("<H", buf[4:6])[0], struct.unpack("<H", buf[4:6])[0])
-                            elif (cmd == DEBUG_CMD_HEX32):
+                            elif (cmd == DEBUG_CMD_HEX32 and self._debug):
                                 #print >>sys.stderr, repr(buf)
                                 print >>sys.stderr, "DEBUG: (%.3f) 0x%x %d"%(timestamp, struct.unpack("<L", buf[4:8])[0], struct.unpack("<L", buf[4:8])[0])
-                            elif (cmd == DEBUG_CMD_INT):
+                            elif (cmd == DEBUG_CMD_INT and self._debug):
                                 print >>sys.stderr, "DEBUG: (%.3f) %d"%(timestamp, struct.unpack("<L", buf[4:8])[0])
-                            else:
+                            elif self._debug:
                                 print >>sys.stderr,('DEBUG COMMAND UNKNOWN: %x (buf=%s)'%(cmd,repr(buf)))
 
             except:
