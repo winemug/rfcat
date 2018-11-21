@@ -244,6 +244,8 @@ class USBDongle:
         for dev in getRfCatDevices():
             if self._debug: print >>sys.stderr,(dev)
             do = dev.open()
+            do.releaseInterface()
+            do.reset()
             iSN = do.getDescriptor(1,0,50)[16]
             devnum = dev.devnum
             dongles.append((devnum, dev, do))
