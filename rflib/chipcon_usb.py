@@ -7,6 +7,7 @@ import struct
 import select
 import threading
 
+from usb import USBError
 import bits
 from chipcondefs import *
 from rflib_defs import *
@@ -262,7 +263,7 @@ class USBDongle:
         
         try:
             do.claimInterface(0)
-        except Exception,e:
+        except Exception as e:
             if console or self._debug: print >>sys.stderr,("Error claiming usb interface:" + repr(e))
 
 
@@ -313,7 +314,7 @@ class USBDongle:
                 self.ping(3, wait=10, silent=True)
                 self.setRfMode(self._rfmode)
 
-            except Exception, e:
+            except Exception as e:
                 #if console: sys.stderr.write('.')
                 if not self._quiet:
                     print >>sys.stderr,("Error in resetup():" + repr(e))
@@ -351,7 +352,7 @@ class USBDongle:
                 numwrt = self._do.bulkWrite(5, drain, timeout)
                 if numwrt != len(drain):
                     raise Exception("Didn't write all the data!? Sent: %d != Queued: %d.  REqueuing!(this may be the wrong thing to do, swat me if so)" % (numwrt, len(drain)))
-            except Exception, e:
+            except Exception as e:
                 if self._debug: print >>sys.stderr,"requeuing on error '%s' (%s)" % (repr(drain), e)
                 self.xsema.acquire()
                 msg = self.xmit_queue.insert(0, drain)
@@ -411,7 +412,7 @@ class USBDongle:
                 else:
                     if self._debug>3: sys.stderr.write("NoMsgToSend ")
             except:
-                sys.excepthook(*sys.exc_info())
+                pass
 
     def runEP5_recv(self):
         msg = ''
@@ -473,7 +474,7 @@ class USBDongle:
                                 print >>sys.stderr,('DEBUG COMMAND UNKNOWN: %x (buf=%s)'%(cmd,repr(buf)))
 
             except:
-                sys.excepthook(*sys.exc_info())
+                pass
 
             #### receive stuff.
             if self._debug>2: print >> sys.stderr, "recvthread: Doing receiving...",self.ep5timeout
@@ -483,7 +484,7 @@ class USBDongle:
                 if len(msg) > 0:
                     self.recv_queue += msg
                     msgrecv = True
-            except usb.USBError, e:
+            except USBError as e:
                 #sys.stderr.write(repr(self.recv_queue))
                 #sys.stderr.write(repr(e))
                 errstr = repr(e)
@@ -511,10 +512,10 @@ class USBDongle:
 
                     else:
                         if self._debug: print "Error in runEP5() (receiving): %s" % errstr
-                        if self._debug>2: sys.excepthook(*sys.exc_info())
+                        if self._debug>2: pass
                     self._usberrorcnt += 1
                 pass
-            except AttributeError,e:
+            except AttributeError as e:
                 if "'NoneType' object has no attribute 'bInterfaceNumber'" in str(e):
                     print "Error: dongle went away.  USB bus problems?"
                     self._threadGo.clear()
@@ -522,7 +523,7 @@ class USBDongle:
                     self.reset_event.set()
 
             except:
-                sys.excepthook(*sys.exc_info())
+                pass
 
             if self._debug>2: print >> sys.stderr, "recvthread: Sorting mail..."
             #### parse, sort, and deliver the mail.
@@ -566,7 +567,7 @@ class USBDongle:
                                             b = {}
                                             self.recv_mbox[app] = b
                                     except:
-                                        sys.excepthook(*sys.exc_info())
+                                        pass
                                     finally:
                                         self.rsema.release()                            # THREAD SAFETY DANCE COMPLETE
                                
@@ -585,7 +586,7 @@ class USBDongle:
                                         self._recv_time = 0                         # we've delivered the current message
 
                                     except:
-                                        sys.excepthook(*sys.exc_info())
+                                        pass
                                     finally:
                                         self.rsema.release()                            # THREAD SAFETY DANCE COMPLETE
                                
@@ -597,7 +598,7 @@ class USBDongle:
                             # end of while loop
 
             except:
-                sys.excepthook(*sys.exc_info())
+                pass
 
             if self._debug>2: print >> sys.stderr, "readthread: Loop finished"
             if not (msgrecv or len(msg)) :
@@ -649,7 +650,7 @@ class USBDongle:
                             pass
 
                         except AttributeError:
-                            sys.excepthook(*sys.exc_info())
+                            pass
                             pass
 
                         self.rsema.release()
@@ -658,10 +659,10 @@ class USBDongle:
                 self.recv_event.clear() # clear event, if it's set
 
             except KeyboardInterrupt:
-                sys.excepthook(*sys.exc_info())
+                pass
                 break
             except:
-                sys.excepthook(*sys.exc_info())
+                pass
 
         raise(ChipconUsbTimeoutException())
 
@@ -678,7 +679,7 @@ class USBDongle:
                         if len(retval):
                             retval = [ (d[4:],t) for d,t in retval ] 
                     except:
-                        sys.excepthook(*sys.exc_info())
+                        pass
                     finally:
                         self.rsema.release()
                         #if self._debug: print ("rsema.UNlocked", "rsema.locked")[self.rsema.locked()],3
@@ -754,7 +755,7 @@ class USBDongle:
             try:
                 r = self._recvEP0(request=2, value=count, length=count, timeout=DEFAULT_USB_TIMEOUT)
                 print "PING: %d bytes received: %s"%(len(r), repr(r))
-            except ChipconUsbTimeoutException, e:
+            except ChipconUsbTimeoutException as e:
                 r = None
                 print "Ping Failed.",e
             if r==None:
@@ -788,7 +789,7 @@ class USBDongle:
         try:
             r = self.send(APP_SYSTEM, SYS_CMD_PARTNUM, "", 10000)
             r,rt = r
-        except ChipconUsbTimeoutException, e:
+        except ChipconUsbTimeoutException as e:
             r = None
             print "SETUP Failed.",e
 
@@ -808,7 +809,7 @@ class USBDongle:
                 istop = time.time()
                 if not silent:
                     print "PING: %d bytes transmitted, received: %s (%f seconds)"%(len(buf), repr(r), istop-istart)
-            except ChipconUsbTimeoutException, e:
+            except ChipconUsbTimeoutException as e:
                 r = None
                 if not silent:
                     print "Ping Failed.",e
